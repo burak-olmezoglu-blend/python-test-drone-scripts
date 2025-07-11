@@ -3,8 +3,8 @@ from mavsdk import System
 from mavsdk.manual_control import ManualControlError
 
 # --- AYARLANABİLİR PARAMETRELER ---
-THROTTLE_VALUE = 0.20
-DURATION_S = 10
+THROTTLE_VALUE = 0.15 #MIN DEGERLER
+DURATION_S = 2        #MIN DEGERLER
 
 async def run():
     """
