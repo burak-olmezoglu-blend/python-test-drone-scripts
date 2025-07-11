@@ -12,7 +12,7 @@ async def run():
     doğrudan gaz (throttle) kontrolü uygular. (DÜZELTİLMİŞ VERSİYON)
     """
     drone = System()
-    await drone.connect(system_address="udp://:14551")
+    await drone.connect(system_address="serial:///dev/serial0:57600")
 
     print("Drone'a bağlanılıyor...")
     async for state in drone.core.connection_state():
