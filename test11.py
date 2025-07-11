@@ -1,20 +1,18 @@
 import asyncio
 from mavsdk import System
-from mavsdk.manual_control import ManualControlResult
+from mavsdk.manual_control import ManualControlError
 
 # --- AYARLANABİLİR PARAMETRELER ---
-# Uygulanacak gaz yüzdesi (0.0 = 0%, 1.0 = 100%).
-THROTTLE_VALUE = 0.15
-# Gazın uygulanacağı süre (saniye).
-DURATION_S = 2
+THROTTLE_VALUE = 0.20
+DURATION_S = 10
 
 async def run():
     """
     Drone'a bağlanır, arm eder ve belirli bir süre boyunca
-    doğrudan gaz (throttle) kontrolü uygular.
+    doğrudan gaz (throttle) kontrolü uygular. (DÜZELTİLMİŞ VERSİYON)
     """
     drone = System()
-    await drone.connect(system_address="serial:///dev/serial0:57600")
+    await drone.connect(system_address="udp://:14551")
 
     print("Drone'a bağlanılıyor...")
     async for state in drone.core.connection_state():
@@ -22,7 +20,6 @@ async def run():
             print("Bağlantı başarılı!")
             break
 
-    # Uçuş kontrolcüsünün manuel kontrole hazır olduğundan emin ol
     print("Manuel kontrol için uçuş modunun 'Stabilize' veya 'Acro' olduğundan emin olun.")
     print("İlk denemeyi MUTLAKA pervaneler olmadan yapın!")
     await asyncio.sleep(3)
@@ -31,21 +28,26 @@ async def run():
     await drone.action.arm()
     await asyncio.sleep(1)
 
-    print("Manuel kontrol başlatılıyor...")
-    # Manuel kontrolü etkinleştir
-    await drone.manual_control.start_position_control()
-
-    print(f"{DURATION_S} saniye boyunca gaz %{int(THROTTLE_VALUE * 100)} olarak ayarlanıyor...")
+    # --- DÜZELTİLMİŞ SIRALAMA ---
     
-    # Manuel kontrol komutunu gönder
-    # set_manual_control_input(x, y, z, r)
-    # x: pitch (ileri/geri, -1 ile 1 arası)
-    # y: roll (sağ/sol, -1 ile 1 arası)
-    # z: yaw (dönüş hızı, -1 ile 1 arası)
-    # r: throttle (gaz, 0 ile 1 arası)
+    # 1. ÖNCE, GÜVENLİ BİR BAŞLANGIÇ POZİSYONU AYARLA (HER ŞEY SIFIR)
+    print("Manuel kontrol için başlangıç pozisyonu ayarlanıyor (gaz=0)...")
+    await drone.manual_control.set_manual_control_input(0.0, 0.0, 0.0, 0.0)
+    
+    # 2. ŞİMDİ, MANUEL KONTROLÜ BAŞLAT
+    print("Manuel kontrol başlatılıyor...")
+    try:
+        await drone.manual_control.start_position_control()
+    except ManualControlError as e:
+        print(f"Manuel kontrol başlatılamadı: {e}")
+        print("Lütfen drone'un 'Stabilize' veya 'Acro' modunda olduğundan emin olun.")
+        await drone.action.disarm()
+        return
+
+    # 3. KONTROL BAŞLADI, İSTENEN GAZI GÖNDER
+    print(f"{DURATION_S} saniye boyunca gaz %{int(THROTTLE_VALUE * 100)} olarak ayarlanıyor...")
     await drone.manual_control.set_manual_control_input(0.0, 0.0, 0.0, THROTTLE_VALUE)
     
-    # Belirtilen süre boyunca bekle
     await asyncio.sleep(DURATION_S)
     
     print(f"{DURATION_S} saniye doldu. Gaz kesiliyor...")
