@@ -1,0 +1,2 @@
+drone_env
+mavproxy.py --master=/dev/serial0 --baud=57600

@@ -1,0 +1,3 @@
+ssh pi@raspberrypi.local
+
+şifre: pi
